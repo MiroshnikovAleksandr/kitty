@@ -1,0 +1,87 @@
+diff --git a/_grab_ui.py b/_grab_ui.py
+index ba77085..7316145 100644
+--- a/_grab_ui.py
++++ b/_grab_ui.py
+@@ -42,6 +42,8 @@ SelectionInLine = Union[Tuple[ScreenColumn, ScreenColumn],
+ 
+ PositionBase = NamedTuple('Position', [
+     ('x', ScreenColumn), ('y', ScreenLine), ('top_line', AbsoluteLine)])
++
++
+ class Position(PositionBase):
+     """
+     Coordinates of a cell.
+@@ -97,7 +99,7 @@ class Position(PositionBase):
+         scroll as little as possible to make both visible.
+         Otherwise, scroll as much as possible towards other.
+         """
+-        #  @ 
++        #  @
+         #  .|   .    @|   .    .
+         # |.|  |.   |.|  |.   |.|
+         # |*|  |*|  |*|  |*|  |*|
+@@ -366,7 +368,8 @@ def load_config(*paths: str, overrides: Optional[Iterable[str]] = None) -> Optio
+                                   os.path.join(config_dir, 'grab.conf'),
+                                   config_files_on_cmd_line=[]))
+     overrides = tuple(overrides) if overrides is not None else ()
+-    opts_dict, paths = _load_config(defaults, parse_config, merge_result_dicts, *configs, overrides=overrides)
++    opts_dict, paths = _load_config(
++        defaults, parse_config, merge_result_dicts, *configs, overrides=overrides)
+     opts = Options(opts_dict)
+     opts.config_paths = paths
+     opts.config_overrides = overrides
+@@ -410,8 +413,8 @@ class GrabHandler(Handler):
+         # c — clipboard
+         # p — primary
+         # s — secondary
+-        self.copy_to = {'primary': b'p', 'secondary': b's'}.get(args.copy_to, b'c')
+-
++        self.copy_to = {'primary': b'p', 'secondary': b's'}.get(
++            args.copy_to, b'c')
+ 
+         for spec, action in self.opts.map:
+             self.add_shortcut(action, spec)
+@@ -497,7 +500,7 @@ class GrabHandler(Handler):
+ 
+     region_types = {'stream': StreamRegion,
+                     'columnar': ColumnarRegion
+-                   }  # type: Dict[RegionTypeStr, Type[Region]]
++                    }  # type: Dict[RegionTypeStr, Type[Region]]
+ 
+     mode_types = {'normal': NoRegion,
+                   'visual': StreamRegion,
+@@ -662,6 +665,24 @@ class GrabHandler(Handler):
+             for line_slice, _half in [string_slice(plain, start_x, end_x)])}
+         self.quit_loop(0)
+ 
++    def copy(self, *args: Any) -> None:
++        if self.mark is None:
++            return
++        start, end = self._start_end()
++        self.result = {'copy': '\n'.join(
++            line_slice
++            for line in range(start.line, end.line + 1)
++            for plain in [unstyled(self.lines[line - 1])]
++            for start_x, end_x in [self.mark_type.selection_in_line(
++                line, start, end, len(plain))]
++            if start_x is not None and end_x is not None
++            for line_slice, _half in [string_slice(plain, start_x, end_x)])}
++        self.print('\x1b]52;{};{}\x1b\\'.format(
++            self.copy_to.decode('ascii'),
++            b64encode(self.result['copy'].encode('utf-8')).decode('ascii')),
++            end='')
++        self.set_mode('normal')
++
+ 
+ def main(args: List[str]) -> Optional['ResultDict']:
+ 
+@@ -706,7 +727,8 @@ type=int
+         loop.loop(handler)
+         if loop.return_code == 0 and 'copy' in handler.result:
+             sys.stdout.buffer.write(b''.join((b'\x1b]52;', handler.copy_to, b';',
+-                                              b64encode(handler.result['copy'].encode('utf-8')),
++                                              b64encode(
++                                                  handler.result['copy'].encode('utf-8')),
+                                               b'\x1b\\')))
+         return {}
+     except Exception as e:
