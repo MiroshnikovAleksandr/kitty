@@ -2,17 +2,27 @@ from kitty.tab_bar import as_rgb, draw_title
 from kitty.utils import color_as_int
 
 
-def draw_tab(draw_data, screen, tab, before, max_tab_length, index, is_last, extra_data):
-    if extra_data.next_tab is not None:
-        next_bg = draw_data.tab_bg(extra_data.next_tab)
-    else:
-        next_bg = color_as_int(draw_data.default_bg)
-    next_bg_hex = format(next_bg & 0xFFFFFF, '06x')
+def _tab_bg_hex(draw_data, tab):
+    if tab.is_active:
+        return format(color_as_int(draw_data.active_bg), '06x')
+    return format(color_as_int(draw_data.inactive_bg), '06x')
 
-    new_title_template = draw_data.title_template.replace('_ffffff', f'_{next_bg_hex}')
+
+def draw_tab(draw_data, screen, tab, before, max_tab_length, index, is_last, extra_data):
+    cur_bg_hex = _tab_bg_hex(draw_data, tab)
+    if extra_data.next_tab is not None:
+        next_bg_hex = _tab_bg_hex(draw_data, extra_data.next_tab)
+    else:
+        next_bg_hex = format(color_as_int(draw_data.default_bg), '06x')
+
+    new_title_template = draw_data.title_template.replace(
+        'fmt.fg._000000', f'fmt.fg._{cur_bg_hex}').replace(
+        'fmt.bg._ffffff', f'fmt.bg._{next_bg_hex}')
     new_active_title_template = None
     if draw_data.active_title_template is not None:
-        new_active_title_template = draw_data.active_title_template.replace('_ffffff', f'_{next_bg_hex}')
+        new_active_title_template = draw_data.active_title_template.replace(
+            'fmt.fg._000000', f'fmt.fg._{cur_bg_hex}').replace(
+            'fmt.bg._ffffff', f'fmt.bg._{next_bg_hex}')
     draw_data = draw_data._replace(
         title_template=new_title_template,
         active_title_template=new_active_title_template,
