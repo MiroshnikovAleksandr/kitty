@@ -1,6 +1,6 @@
 [submodule "kitty_grab"]
 	path = kitty_grab
-	url = https://github.com/yurikhan/kitty_grab.git
+	url = https://github.com/MiroshnikovAleksandr/kitty_grab
 [submodule "kitty_search"]
 	path = kitty_search
 	url = https://github.com/trygveaa/kitty-kitten-search.git
